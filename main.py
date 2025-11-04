@@ -24,6 +24,10 @@ class CheckGrabberBot:
     def __init__(self):
         self.processed_messages: Set[int] = set()  # Для отслеживания обработанных сообщений
         self.stats_task = None
+        self.status_task = None
+        self.messages_processed = 0
+        self.checks_found = 0
+        self.start_time = None
         
     async def setup_handlers(self):
         """Настройка обработчиков для всех клиентов"""
@@ -74,6 +78,9 @@ class CheckGrabberBot:
             if len(self.processed_messages) > 20000:
                 # Оставляем только последние 5000 записей (меньше для экономии памяти)
                 self.processed_messages = set(list(self.processed_messages)[-5000:])
+            
+            # Счетчик обработанных сообщений
+            self.messages_processed += 1
             
             # Параллельная обработка сообщения (не блокируем выполнение)
             # Все аккаунты будут обрабатывать одно и то же сообщение одновременно
@@ -145,6 +152,48 @@ class CheckGrabberBot:
             except Exception as e:
                 pass
 
+    async def show_status(self):
+        """Периодический показ статуса работы бота"""
+        while account_manager.running:
+            try:
+                await asyncio.sleep(60)  # Каждую минуту
+                
+                if self.start_time:
+                    uptime = int(asyncio.get_event_loop().time() - self.start_time)
+                    hours = uptime // 3600
+                    minutes = (uptime % 3600) // 60
+                    seconds = uptime % 60
+                    uptime_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+                else:
+                    uptime_str = "00:00:00"
+                
+                # Получаем статистику из базы данных
+                stats = await db.get_total_stats()
+                total_checks = sum(data.get('total_checks', 0) for data in stats.values())
+                total_amount = sum(data.get('total_amount', 0) for data in stats.values())
+                
+                # Количество активных аккаунтов
+                active_accounts = len(account_manager.get_all_clients())
+                
+                print(f"\n{'='*60}")
+                print(f"📊 СТАТУС РАБОТЫ БОТА")
+                print(f"{'='*60}")
+                print(f"⏱️  Время работы: {uptime_str}")
+                print(f"👥 Активных аккаунтов: {active_accounts}")
+                print(f"📨 Обработано сообщений: {self.messages_processed}")
+                print(f"💰 Всего активировано чеков: {total_checks}")
+                print(f"💵 Общая сумма: {total_amount:.2f}")
+                
+                if stats:
+                    print(f"\n📈 По типам ботов:")
+                    for bot_type, data in stats.items():
+                        print(f"   {bot_type.upper()}: {data.get('total_checks', 0)} чеков, {data.get('total_amount', 0):.2f}")
+                
+                print(f"{'='*60}\n")
+                
+            except Exception as e:
+                pass
+    
     async def auto_withdraw_task(self):
         """Задача автоматического вывода из CryptoBot"""
         if not AUTO_WITHDRAW_ENABLED or not WITHDRAW_MAIN_ACCOUNT:
@@ -212,11 +261,18 @@ class CheckGrabberBot:
         
         # Запуск фоновых задач
         self.stats_task = asyncio.create_task(self.start_logging())
+        self.status_task = asyncio.create_task(self.show_status())
         
         if AUTO_WITHDRAW_ENABLED:
             asyncio.create_task(self.auto_withdraw_task())
         
+        self.start_time = asyncio.get_event_loop().time()
         print(f"✅ Бот запущен с {count} аккаунтами. Мониторинг активен...")
+        print(f"💡 Индикаторы работы:")
+        print(f"   - Сообщения обрабатываются автоматически")
+        print(f"   - Активированные чеки отображаются в консоли с ✅")
+        print(f"   - Статистика обновляется каждые 60 секунд")
+        print(f"   - Нажмите Ctrl+C для остановки\n")
         
         # Держим бота запущенным
         try:
@@ -228,11 +284,17 @@ class CheckGrabberBot:
             await account_manager.stop_all()
             if self.stats_task:
                 self.stats_task.cancel()
+            if self.status_task:
+                self.status_task.cancel()
             print("✅ Бот остановлен")
 
 
+# Глобальный экземпляр бота для доступа из других модулей
+bot = None
+
 async def main():
     """Точка входа"""
+    global bot
     bot = CheckGrabberBot()
     await bot.run()
 
@@ -243,4 +305,6 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("\n👋 До свидания!")
         sys.exit(0)
+
+
 
