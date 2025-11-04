@@ -1,0 +1,14 @@
+# Формат аккаунта: api_id:api_hash:session_name:phone
+# 
+# Примеры:
+# 12345678:abcdef1234567890abcdef1234567890:account1:+1234567890
+# 12345678:abcdef1234567890abcdef1234567890:account2:+1234567891
+#
+# Если api_id и api_hash одинаковые для всех аккаунтов, можно указать только один раз в config.py
+# Тогда формат: session_name:phone
+#
+# Примеры с общими API credentials:
+# account1:+1234567890
+# account2:+1234567891
+
+

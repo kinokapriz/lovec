@@ -1,0 +1,61 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Sessions
+sessions/
+*.session
+*.session-journal
+
+# Database
+*.db
+*.db-journal
+checks.db
+
+# Environment
+.env
+.env.local
+.venv
+
+# Deployment files (keep Procfile and runtime.txt for deployment)
+fly.toml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Accounts
+accounts.txt
+
+# OS
+.DS_Store
+Thumbs.db
+
